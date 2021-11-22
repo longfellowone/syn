@@ -1,16 +1,90 @@
-pub fn hello() {
-    println!("hello")
+use anyhow::{Context, Result};
+use chrono::Utc;
+use chrono_tz::Canada;
+use reqwest::header::{ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, CONTENT_TYPE, USER_AGENT};
+use serde::{Deserialize, Serialize};
+
+const BASE_URI: &str = "https://ozzelectric.synerionenterprise.com";
+
+pub struct Client {
+    token: String,
 }
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
+impl Client {
+    pub async fn new(username: String, password: String) -> Result<Client> {
+        let token = get_token(username, password).await?;
+
+        println!("{}", token);
+
+        Ok(Client { token })
     }
 }
 
+async fn get_token(username: String, password: String) -> Result<String> {
+    #[derive(Debug, Serialize)]
+    #[serde(rename_all = "PascalCase")]
+    struct TokenRequest {
+        #[serde(rename = "UserName")]
+        username: String,
+        password: String,
+        device_model: String,
+        device_unique_id: String,
+        replace_registered_device: bool,
+    }
+
+    #[derive(Debug, Deserialize)]
+    #[serde(rename_all = "PascalCase")]
+    struct TokenResponse {
+        token: String,
+    }
+
+    let url = BASE_URI.to_owned() + "/SynerionMobile/api/mobile/auth/login_99999999999";
+
+    let client = reqwest::Client::new();
+
+    // create function and test
+    // let (first, last) = s.split_at(2);
+    let time = Utc::now().with_timezone(&Canada::Pacific);
+    let start_time = time.timestamp_millis();
+    let date_time: &str = &time.to_rfc3339()[..23];
+
+    let token_request = TokenRequest {
+        username,
+        password,
+        device_model: "iPhone13,3".to_string(),
+        device_unique_id: "0AD03A66-92F7-4D3B-AA15-123C3FD633F7".to_string(),
+        replace_registered_device: false,
+    };
+
+    let json = serde_json::to_string(&token_request).expect("my error");
+
+    let response = client
+        .post(url)
+        .query(&[("CustomerId", "ozzelectric")])
+        .header(ACCEPT, "application/json, text/plain, */*")
+        .header(ACCEPT_ENCODING, "gzip,deflate,br")
+        .header(ACCEPT_LANGUAGE, "en-ca")
+        .header(
+            USER_AGENT,
+            "Synerion%20Mobile%20Pro/3.1.1 CFNetwork/1240.0.4 Darwin/20.6.0",
+        )
+        .header(CONTENT_TYPE, "application/json;charset=utf-8")
+        .header("x-client-version", "2.35.0")
+        .header("x-request-start-time", start_time)
+        .header("client-date-time", date_time)
+        .body(json)
+        .send()
+        .await
+        .context("test1")?;
+
+    let token = response
+        .json::<TokenResponse>()
+        .await
+        .context("test2")?
+        .token;
+
+    Ok(token)
+}
 
 //
 // use anyhow::Result;
