@@ -44,8 +44,12 @@ pub async fn run() -> Result<()> {
     Ok(())
 }
 
+const BASE_URL: &str = "https://ozzelectric.synerionenterprise.com";
+
 pub async fn punchin(e: Employee) -> Result<()> {
-    let _client = syn::Client::new(e).await?;
+    let client = syn::Client::new(BASE_URL, e).await?;
+
+    client.punchin().await?;
 
     // Sleep for 0-3 minutes before punch
     sleep(Duration::from_secs(1)).await;
@@ -54,7 +58,7 @@ pub async fn punchin(e: Employee) -> Result<()> {
 }
 
 pub async fn punchout(e: Employee) -> Result<()> {
-    let _client = syn::Client::new(e).await?;
+    let _client = syn::Client::new(BASE_URL, e).await?;
 
     // Sleep for 0-3 minutes before punch
     sleep(Duration::from_secs(1)).await;
