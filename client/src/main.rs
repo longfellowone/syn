@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports, unused_variables)]
+
 mod command;
 
 use anyhow::{Error, Result};
@@ -13,26 +15,32 @@ async fn main() {
         Ok(cmd) => cmd,
         Err(e) => {
             println!("failed to parse args: {}", e);
-            sleep(Duration::from_secs(10)).await;
+            sleep(Duration::from_secs(5)).await;
             process::exit(1)
         }
     };
 
     if let Err(e) = check_app_status().await {
         println!("health check failed: {}", e);
-        sleep(Duration::from_secs(10)).await;
+        sleep(Duration::from_secs(5)).await;
         process::exit(1)
     }
 
     match cmd {
         Command::Punchin(e) => {
             if let Err(e) = punchin(e).await {
-                println!("failed to punch in: {}", e);
-                sleep(Duration::from_secs(10)).await;
+                println!("failed to punch in: {:?}", e);
+                sleep(Duration::from_secs(5)).await;
                 process::exit(1)
             }
         }
-        Command::Punchout(e) => punchout(e),
+        Command::Punchout(e) => {
+            if let Err(e) = punchout(e).await {
+                println!("failed to punch out: {:?}", e);
+                sleep(Duration::from_secs(5)).await;
+                process::exit(1)
+            }
+        }
     }
 }
 

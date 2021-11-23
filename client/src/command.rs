@@ -1,4 +1,4 @@
-use anyhow::Context;
+use anyhow::{Context, Result};
 use std::process;
 use structopt::StructOpt;
 use tokio::time::{sleep, Duration};
@@ -17,22 +17,17 @@ pub struct Employee {
     password: String,
 }
 
-pub async fn punchin(e: Employee) -> anyhow::Result<()> {
+pub async fn punchin(e: Employee) -> Result<()> {
     let _client = syn::Client::new(e.username, e.password).await?;
-
-    Ok(())
 
     // Sleep for 0-3 minutes
     // sleep(Duration::from_secs(10)).await;s
+
+    Ok(())
 }
 
-pub fn punchout(e: Employee) {
-    // let _client = match syn::Client::new(e.username, e.password).await {
-    //     Ok(client) => client,
-    //     Err(e) => {
-    //         println!("failed to retrieve token: {}", e);
-    //         sleep(Duration::from_secs(10)).await;
-    //         process::exit(1)
-    //     }
-    // };
+pub async fn punchout(e: Employee) -> Result<()> {
+    let _client = syn::Client::new(e.username, e.password).await?;
+
+    Ok(())
 }
