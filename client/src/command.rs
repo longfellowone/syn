@@ -1,5 +1,5 @@
-use anyhow::{Context, Result};
-use std::process;
+use anyhow::{Context, Error, Result};
+use reqwest::StatusCode;
 use structopt::StructOpt;
 use tokio::time::{sleep, Duration};
 
@@ -15,19 +15,58 @@ pub struct Employee {
     username: String,
     #[structopt(short)]
     password: String,
+    #[structopt(short)]
+    device_unique_id: String,
+}
+
+impl From<Employee> for syn::Employee {
+    fn from(e: Employee) -> Self {
+        Self {
+            username: e.username,
+            password: e.password,
+            device_unique_id: e.device_unique_id,
+        }
+    }
+}
+
+pub async fn run() -> Result<()> {
+    check_app_status()
+        .await
+        .context("error: health check failed")?;
+
+    let cmd = Command::from_args_safe()?;
+
+    match cmd {
+        Command::Punchin(e) => punchin(e).await.context("error: failed to punch in")?,
+        Command::Punchout(e) => punchout(e).await.context("error: failed to punch out")?,
+    }
+
+    Ok(())
 }
 
 pub async fn punchin(e: Employee) -> Result<()> {
-    let _client = syn::Client::new(e.username, e.password).await?;
+    let _client = syn::Client::new(e).await?;
 
-    // Sleep for 0-3 minutes
-    // sleep(Duration::from_secs(10)).await;s
+    // Sleep for 0-3 minutes before punch
+    sleep(Duration::from_secs(1)).await;
 
     Ok(())
 }
 
 pub async fn punchout(e: Employee) -> Result<()> {
-    let _client = syn::Client::new(e.username, e.password).await?;
+    let _client = syn::Client::new(e).await?;
+
+    // Sleep for 0-3 minutes before punch
+    sleep(Duration::from_secs(1)).await;
 
     Ok(())
+}
+
+pub async fn check_app_status() -> Result<()> {
+    let online = reqwest::get("https://syn-yp9ox.ondigitalocean.app/v1/syn").await?;
+
+    match online.status() {
+        StatusCode::OK => Ok(()),
+        _ => Err(Error::msg("status code not 200")),
+    }
 }
