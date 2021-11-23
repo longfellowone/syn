@@ -1,6 +1,7 @@
 use anyhow::{Context, Error, Result};
 use chrono::Utc;
 use chrono_tz::Canada;
+use rand::Rng;
 use reqwest::header::{
     ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, AUTHORIZATION, CONTENT_TYPE, USER_AGENT,
 };
@@ -58,11 +59,16 @@ impl Client {
         let client = reqwest::Client::new();
         let (time_unix, date) = date_time();
 
+        let mut rng = rand::thread_rng();
+
+        let rand_lat = rng.gen_range(0.0000..0.00009999999999);
+        let rand_long = rng.gen_range(0.0000..0.00009999999999);
+
         let punchin_request = PunchinRequest {
             punch_type: punch_type as i8,
             location: Location {
-                latitude: 49.23122430964335,
-                longitude: -123.11968088332243,
+                latitude: 49.2312 + rand_lat,
+                longitude: -123.1197 + rand_long,
             },
             daily_event_type: 0,
         };
