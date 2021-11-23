@@ -66,8 +66,8 @@ pub async fn punch(punch_type: PunchType, e: Employee) -> Result<()> {
 
     let mut rng = rand::thread_rng();
     let random_delay = match &punch_type {
-        PunchType::In => rng.gen_range(0..240),
-        PunchType::Out => rng.gen_range(0..10),
+        PunchType::In => rng.gen_range(0..120),
+        PunchType::Out => rng.gen_range(0..10) + 31,
     };
 
     println!("{} seconds to punch {}", random_delay, punched);
