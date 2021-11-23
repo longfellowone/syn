@@ -1,10 +1,10 @@
-#![allow(dead_code, unused_imports, unused_variables)]
-use anyhow::{Context, Result};
+use anyhow::{Context, Error, Result};
 use chrono::Utc;
 use chrono_tz::Canada;
 use reqwest::header::{
     ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, AUTHORIZATION, CONTENT_TYPE, USER_AGENT,
 };
+use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 
 pub struct Client {
@@ -16,6 +16,12 @@ pub struct Employee {
     pub username: String,
     pub password: String,
     pub device_unique_id: String,
+    pub new_device: bool,
+}
+
+pub enum PunchType {
+    In = 1,
+    Out = 2,
 }
 
 impl Client {
@@ -31,7 +37,7 @@ impl Client {
         })
     }
 
-    pub async fn punchin(&self) -> Result<()> {
+    pub async fn punch(&self, punch_type: PunchType) -> Result<()> {
         #[derive(Debug, Serialize)]
         #[serde(rename_all = "PascalCase")]
         struct PunchinRequest {
@@ -53,7 +59,7 @@ impl Client {
         let (time_unix, date) = date_time();
 
         let punchin_request = PunchinRequest {
-            punch_type: 1,
+            punch_type: punch_type as i8,
             location: Location {
                 latitude: 49.23122430964335,
                 longitude: -123.11968088332243,
@@ -84,17 +90,10 @@ impl Client {
             .await
             .context("punchin request failed")?;
 
-        // let token = response
-        //     .json::<TokenResponse>()
-        //     .await
-        //     .context("failed to unmarshall token response")?
-        //     .token;
-
-        Ok(())
-    }
-
-    pub async fn punchout(&self) -> Result<()> {
-        Ok(())
+        match response.status() {
+            StatusCode::OK => Ok(()),
+            _ => Err(Error::msg("punch status code not 200")),
+        }
     }
 }
 
@@ -126,7 +125,7 @@ async fn get_token(base_url: &str, employee: Employee) -> Result<String> {
         password: employee.password,
         device_model: "iPhone13,3".to_string(),
         device_unique_id: employee.device_unique_id,
-        replace_registered_device: false,
+        replace_registered_device: employee.new_device,
     };
 
     let json = serde_json::to_string(&token_request).context("failed to marshall token request")?;
@@ -188,11 +187,12 @@ mod tests {
             username: "wrightm".to_string(),
             password: "Welcome1".to_string(),
             device_unique_id: "0AD03A66-92F7-4D3B-AA15-123C3FD633F7".to_string(),
+            new_device: false,
         }
     }
 
     #[tokio::test]
-    async fn test_punchin_has_correct_headers() {
+    async fn test_punch_has_correct_headers() {
         let mock_server = MockServer::start().await;
 
         Mock::given(method("POST"))
@@ -219,11 +219,11 @@ mod tests {
 
         let mock_client = mock_client(&mock_server.uri());
 
-        mock_client.punchin().await.unwrap()
+        mock_client.punch(PunchType::In).await.unwrap()
     }
 
     #[tokio::test]
-    async fn test_punchin_request_response() {
+    async fn test_punch_request_response() {
         let mock_server = MockServer::start().await;
 
         let request_body = r#"{"PunchType":1,"Location":{"Latitude":49.23122430964335,"Longitude":-123.11968088332243},"DailyEventType":0}"#;
@@ -241,23 +241,8 @@ mod tests {
 
         let mock_client = mock_client(&mock_server.uri());
 
-        mock_client.punchin().await.unwrap()
+        mock_client.punch(PunchType::In).await.unwrap()
     }
-
-    // #[tokio::test]
-    // async fn test_punchin_request_response() {
-    //     let mock_server = MockServer::start().await;
-    //
-    //     Mock::given(method("POST"))
-    //         .respond_with(ResponseTemplate::new(200))
-    //         .expect(1)
-    //         .mount(&mock_server)
-    //         .await;
-    //
-    //     let mock_client = mock_client(&mock_server.uri());
-    //
-    //     mock_client.punchin().await.unwrap()
-    // }
 
     #[tokio::test]
     async fn test_get_token() {

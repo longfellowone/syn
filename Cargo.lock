@@ -156,6 +156,7 @@ name = "client"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "rand 0.8.4",
  "reqwest",
  "structopt",
  "syn 0.1.0",
@@ -1265,7 +1266,6 @@ dependencies = [
  "anyhow",
  "chrono",
  "chrono-tz",
- "rand 0.8.4",
  "reqwest",
  "serde",
  "serde_json",
