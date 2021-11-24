@@ -54,8 +54,10 @@ impl Client {
             longitude: f64,
         }
 
+        // TODO: use reqwest::url
         let url = self.base_url.to_owned() + "/SynerionMobile/api/mobile/punches/punch";
 
+        // TODO: move request client into Client::new()
         let client = reqwest::Client::new();
         let (time_unix, date) = date_time();
 
@@ -77,6 +79,8 @@ impl Client {
         let json =
             serde_json::to_string(&punchin_request).context("failed to marshall token request")?;
 
+        // TODO: reqwest::header::HeaderMap
+        // TODO: add private headers function, exclude auth headers
         let response = client
             .post(url)
             .header(ACCEPT, "application/json, text/plain, */*")
@@ -96,6 +100,7 @@ impl Client {
             .await
             .context("punchin request failed")?;
 
+        // TODO: confirm "Error" is none instead of checking status
         match response.status() {
             StatusCode::OK => Ok(()),
             _ => Err(Error::msg("punch status code not 200")),
@@ -121,6 +126,7 @@ async fn get_token(base_url: &str, employee: Employee) -> Result<String> {
         token: String,
     }
 
+    // TODO: use reqwest::url
     let url = base_url.to_owned() + "/SynerionMobile/api/mobile/auth/login";
 
     let client = reqwest::Client::new();
@@ -136,6 +142,9 @@ async fn get_token(base_url: &str, employee: Employee) -> Result<String> {
 
     let json = serde_json::to_string(&token_request).context("failed to marshall token request")?;
 
+    // TODO: reqwest::header::HeaderMap
+    // TODO: set .headers after .json
+    // TODO: revert back to using .json
     let response = client
         .post(url)
         .query(&[("CustomerId", "ozzelectric")])

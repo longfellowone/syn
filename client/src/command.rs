@@ -11,6 +11,7 @@ pub enum Command {
     Punchout(Employee),
 }
 
+// TODO: move location and randomization to Employee struct
 #[derive(StructOpt, Debug)]
 pub struct Employee {
     #[structopt(short)]
@@ -67,7 +68,7 @@ pub async fn punch(punch_type: PunchType, e: Employee) -> Result<()> {
     let mut rng = rand::thread_rng();
     let random_delay = match &punch_type {
         PunchType::In => rng.gen_range(0..60) + 90,
-        PunchType::Out => rng.gen_range(0..10) + 31,
+        PunchType::Out => rng.gen_range(0..10) + 33,
     };
 
     println!("{} seconds to punch {}", random_delay, punched);
@@ -81,6 +82,7 @@ pub async fn punch(punch_type: PunchType, e: Employee) -> Result<()> {
     Ok(())
 }
 
+// TODO: use post request and filter names, check for enabled bool, use device ID from server
 pub async fn check_app_status() -> Result<()> {
     let online = reqwest::get("https://syn-yp9ox.ondigitalocean.app/v1/syn").await?;
 
