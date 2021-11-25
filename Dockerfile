@@ -17,12 +17,12 @@ RUN set -x\
  && cargo build --release
 
 FROM rust:1.56.1-slim
-COPY --from=builder /builder/target/release/server /usr/local/bin
-COPY server/Configuration.toml /usr/local/bin
+COPY --from=builder /builder/target/release/server .
+COPY server/Configuration.toml .
 
 EXPOSE 8080
 
-ENTRYPOINT ["/usr/local/bin"]
-CMD ["./server"]
+ENTRYPOINT ["./server"]
+#CMD ["./server"]
 
 

@@ -16,9 +16,7 @@ pub struct AppData {
     employees: HashMap<String, syn::Employee>,
 }
 
-pub async fn run(listener: TcpListener) -> Result<Server> {
-    let config = Configuration::new()?;
-
+pub fn run(listener: TcpListener) -> Result<Server> {
     let data = AppData {
         employees: syn::employees(),
     };
