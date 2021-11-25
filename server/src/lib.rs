@@ -23,6 +23,8 @@ pub async fn run() -> Result<()> {
 
     let data = web::Data::new(Mutex::new(data));
 
+    println!("Starting server...");
+
     HttpServer::new(move || {
         App::new()
             .wrap(Cors::permissive())
