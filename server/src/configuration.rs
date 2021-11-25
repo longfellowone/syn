@@ -10,7 +10,7 @@ impl Configuration {
     pub fn new() -> Result<Self, ConfigError> {
         let mut c = Config::default();
 
-        c.merge(File::with_name("server/Configuration")).unwrap();
+        c.merge(File::with_name("Configuration")).unwrap();
         // c.merge(Environment::new().separator("_")).unwrap();
 
         c.try_into()

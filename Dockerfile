@@ -18,10 +18,11 @@ RUN set -x\
 
 FROM rust:1.56.1-slim
 COPY --from=builder /builder/target/release/server /usr/local/bin
-COPY server/Configuration.toml /usr/local/bin/server
+COPY server/Configuration.toml /usr/local/bin
 
 EXPOSE 8080
 
-ENTRYPOINT ["/usr/local/bin/server"]
+#ENTRYPOINT ["/usr/local/bin/server"]
+CMD ["/usr/local/bin/server"]
 
 

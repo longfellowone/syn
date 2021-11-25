@@ -7,8 +7,9 @@ edition = "2021"
 
 [dependencies]
 config = "0.11"
-actix-web = "4.0.0-beta.11"
-actix-cors = "0.6.0-beta.3"
+actix-web = "4.0.0-beta.12"
+actix-cors = "0.6.0-beta.4"
+actix-rt = "2.5"
 anyhow = "1.0"
 chrono = "0.4"
 chrono-tz = "0.5"

@@ -92,7 +92,7 @@ pub async fn put(
     let time = Utc::now().with_timezone(&Canada::Pacific).to_rfc2822();
     println!("{} -  Enable/disable employee", time);
 
-    let mut data = data.lock().unwrap();
+    let data = data.lock().unwrap();
 
     HttpResponse::Ok().json("put hit")
 }
