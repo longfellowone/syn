@@ -58,6 +58,7 @@ impl Client {
         let url = self.base_url.to_owned() + "/SynerionMobile/api/mobile/punches/punch";
 
         // TODO: move request client into Client::new()
+        // TODO: add user agent when constructing new client
         let client = reqwest::Client::new();
         let (time_unix, date) = date_time();
 

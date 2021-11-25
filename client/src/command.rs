@@ -5,6 +5,7 @@ use structopt::StructOpt;
 use syn::PunchType;
 use tokio::time::{sleep, Duration};
 
+// TODO: Nest enum in new struct, add flag for -variable and -fixed delay
 #[derive(StructOpt)]
 pub enum Command {
     Punchin(Employee),
@@ -40,16 +41,16 @@ pub async fn run() -> Result<()> {
         .await
         .context("error: health check failed")?;
 
-    let cmd = Command::from_args_safe()?;
-
-    match cmd {
-        Command::Punchin(e) => punch(PunchType::In, e)
-            .await
-            .context("error: failed to punch in")?,
-        Command::Punchout(e) => punch(PunchType::Out, e)
-            .await
-            .context("error: failed to punch out")?,
-    }
+    // let cmd = Command::from_args_safe()?;
+    //
+    // match cmd {
+    //     Command::Punchin(e) => punch(PunchType::In, e)
+    //         .await
+    //         .context("error: failed to punch in")?,
+    //     Command::Punchout(e) => punch(PunchType::Out, e)
+    //         .await
+    //         .context("error: failed to punch out")?,
+    // }
 
     Ok(())
 }
