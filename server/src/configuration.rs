@@ -10,6 +10,8 @@ impl Configuration {
     pub fn new() -> Result<Self, ConfigError> {
         let mut c = Config::default();
 
+        println!("{:?}", std::env::current_dir());
+
         c.merge(File::with_name("Configuration")).unwrap();
         // c.merge(Environment::new().separator("_")).unwrap();
 

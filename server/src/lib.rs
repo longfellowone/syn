@@ -1,9 +1,11 @@
 #![allow(dead_code, unused_variables)]
 use crate::configuration::Configuration;
 use actix_cors::Cors;
+use actix_web::dev::Server;
 use actix_web::{web, App, HttpServer};
 use anyhow::Result;
 use std::collections::HashMap;
+use std::net::TcpListener;
 use std::sync::Mutex;
 
 mod configuration;
@@ -14,7 +16,7 @@ pub struct AppData {
     employees: HashMap<String, syn::Employee>,
 }
 
-pub async fn run() -> Result<()> {
+pub async fn run(listener: TcpListener) -> Result<Server> {
     let config = Configuration::new()?;
 
     let data = AppData {
@@ -25,17 +27,16 @@ pub async fn run() -> Result<()> {
 
     println!("Starting server...");
 
-    HttpServer::new(move || {
+    let server = HttpServer::new(move || {
         App::new()
             .wrap(Cors::permissive())
             .app_data(data.clone())
             .configure(routes)
     })
-    .bind(config.server.addr())?
-    .run()
-    .await?;
+    .listen(listener)?
+    .run();
 
-    Ok(())
+    Ok(server)
 }
 
 fn routes(cfg: &mut web::ServiceConfig) {
@@ -58,11 +59,12 @@ mod test {
     use super::*;
 
     async fn start_app() -> Result<()> {
-        run().await
+        // let server = run()
+        Ok(())
     }
 
     #[actix_rt::test]
     async fn test_something() {
-        start_app().await;
+        // let server = start_app()
     }
 }
