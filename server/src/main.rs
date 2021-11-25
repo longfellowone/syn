@@ -1,4 +1,5 @@
 use anyhow::Result;
+use server::configuration::Configuration;
 use std::net::TcpListener;
 
 #[actix_web::main]
