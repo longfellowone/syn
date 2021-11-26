@@ -6,6 +6,8 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
+// https://serde.rs/attributes.html
+
 #[derive(Debug, Serialize, Clone)]
 pub struct Employee {
     name: String,
@@ -57,7 +59,7 @@ pub fn employees() -> HashMap<String, Employee> {
 
 pub async fn get(req: HttpRequest, data: web::Data<Mutex<AppData>>) -> impl Responder {
     let time = Utc::now().with_timezone(&Canada::Pacific).to_rfc2822();
-    println!("{} -  List employees", time);
+    println!("[{}] List employees", time);
 
     let data = data.lock().unwrap();
 
@@ -72,7 +74,7 @@ pub async fn find(
     data: web::Data<Mutex<AppData>>,
 ) -> impl Responder {
     let time = Utc::now().with_timezone(&Canada::Pacific).to_rfc2822();
-    println!("{} -  Punch in/out", time);
+    println!("[{}] Punch in/out", time);
 
     let data = data.lock().unwrap();
     // return full employee
@@ -84,13 +86,13 @@ pub async fn find(
 // TODO: CONVERT VEC TO HASHMAP
 // TODO: Use employee struct for json input and return
 // TODO: Don't toggle status on server, toggle on client and update server from request
-pub async fn put(
+pub async fn update(
     req: HttpRequest,
     employee: web::Path<String>,
     data: web::Data<Mutex<AppData>>,
 ) -> impl Responder {
     let time = Utc::now().with_timezone(&Canada::Pacific).to_rfc2822();
-    println!("{} -  Enable/disable employee", time);
+    println!("[{}] Enable/disable employee", time);
 
     let data = data.lock().unwrap();
 

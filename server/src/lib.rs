@@ -44,7 +44,7 @@ fn routes(cfg: &mut web::ServiceConfig) {
                 web::scope("/syn")
                     .service(web::resource("").route(web::get().to(syn::get)))
                     .service(web::resource("/{employee}").route(web::get().to(syn::find)))
-                    .service(web::resource("/{employee}").route(web::put().to(syn::put)))
+                    .service(web::resource("/{employee}").route(web::post().to(syn::update)))
                     .service(web::resource("/punchin").route(web::post().to(syn::punchin)))
                     .service(web::resource("/punchout").route(web::post().to(syn::punchout))),
             ),

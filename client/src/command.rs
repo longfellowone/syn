@@ -5,8 +5,17 @@ use structopt::StructOpt;
 use syn::PunchType;
 use tokio::time::{sleep, Duration};
 
-// TODO: Nest enum in new struct, add flag for -variable and -fixed delay
-#[derive(StructOpt)]
+#[derive(StructOpt, Debug)]
+pub struct Opt {
+    #[structopt(short)]
+    instant: bool,
+
+    #[structopt(subcommand)]
+    cmd: Command,
+}
+
+// TODO: add flag for -variable and -fixed delay?
+#[derive(StructOpt, Debug)]
 pub enum Command {
     Punchin(Employee),
     Punchout(Employee),
@@ -17,10 +26,13 @@ pub enum Command {
 pub struct Employee {
     #[structopt(short)]
     username: String,
+
     #[structopt(short)]
     password: String,
+
     #[structopt(short)]
     device_unique_id: String,
+
     #[structopt(short)]
     new_device: bool,
 }
@@ -41,23 +53,23 @@ pub async fn run() -> Result<()> {
         .await
         .context("error: health check failed")?;
 
-    // let cmd = Command::from_args_safe()?;
-    //
-    // match cmd {
-    //     Command::Punchin(e) => punch(PunchType::In, e)
-    //         .await
-    //         .context("error: failed to punch in")?,
-    //     Command::Punchout(e) => punch(PunchType::Out, e)
-    //         .await
-    //         .context("error: failed to punch out")?,
-    // }
+    let opt = Opt::from_args_safe()?;
+
+    match opt.cmd {
+        Command::Punchin(e) => punch(PunchType::In, opt.instant, e)
+            .await
+            .context("error: failed to punch in")?,
+        Command::Punchout(e) => punch(PunchType::Out, opt.instant, e)
+            .await
+            .context("error: failed to punch out")?,
+    }
 
     Ok(())
 }
 
 const BASE_URL: &str = "https://ozzelectric.synerionenterprise.com";
 
-pub async fn punch(punch_type: PunchType, e: Employee) -> Result<()> {
+pub async fn punch(punch_type: PunchType, instant: bool, e: Employee) -> Result<()> {
     let client = syn::Client::new(BASE_URL, &e).await?;
 
     let name = e.username;
@@ -67,13 +79,17 @@ pub async fn punch(punch_type: PunchType, e: Employee) -> Result<()> {
     };
 
     let mut rng = rand::thread_rng();
-    let random_delay = match &punch_type {
+    let mut delay = match &punch_type {
         PunchType::In => rng.gen_range(0..60) + 90,
         PunchType::Out => rng.gen_range(0..10) + 33,
     };
 
-    println!("{} seconds to punch {}", random_delay, punched);
-    sleep(Duration::from_secs(random_delay)).await;
+    if instant {
+        delay = 0;
+    }
+
+    println!("{} seconds to punch {}", delay, punched);
+    sleep(Duration::from_secs(delay)).await;
 
     client.punch(punch_type).await?;
 
