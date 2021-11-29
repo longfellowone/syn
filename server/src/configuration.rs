@@ -24,7 +24,7 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn addr(&self) -> (&str, u16) {
-        (&self.host, self.port)
+    pub fn address(&self) -> String {
+        format!("{}:{}", self.host, self.port)
     }
 }

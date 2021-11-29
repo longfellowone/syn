@@ -22,8 +22,6 @@ pub fn run(listener: TcpListener) -> Result<Server> {
 
     let data = web::Data::new(Mutex::new(data));
 
-    println!("Starting server...");
-
     let server = HttpServer::new(move || {
         App::new()
             .wrap(Cors::permissive())
@@ -52,16 +50,16 @@ fn routes(cfg: &mut web::ServiceConfig) {
 }
 
 #[cfg(test)]
-mod test {
-    use super::*;
+pub mod test_util {
+    use std::net::TcpListener;
 
-    async fn start_app() -> Result<()> {
-        // let server = run()
-        Ok(())
-    }
+    pub fn run_app() -> String {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("failed to bind random port");
+        let port = listener.local_addr().unwrap().port();
+        let server = crate::run(listener).expect("failed to start server");
 
-    #[actix_rt::test]
-    async fn test_something() {
-        // let server = start_app()
+        actix_rt::spawn(server);
+
+        format!("http://127.0.0.1:{}", port)
     }
 }
