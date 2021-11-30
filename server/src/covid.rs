@@ -11,7 +11,6 @@ pub async fn get(req: HttpRequest) -> impl Responder {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use crate::test_util;
 
     #[actix_rt::test]

@@ -9,15 +9,16 @@ use std::sync::Mutex;
 
 pub mod configuration;
 mod covid;
+mod employees;
 mod syn;
 
 pub struct AppData {
-    employees: HashMap<String, syn::Employee>,
+    employees: HashMap<String, employees::Employee>,
 }
 
 pub fn run(listener: TcpListener) -> Result<Server> {
     let data = AppData {
-        employees: syn::employees(),
+        employees: employees::employees(),
     };
 
     let data = web::Data::new(Mutex::new(data));
@@ -41,10 +42,16 @@ fn routes(cfg: &mut web::ServiceConfig) {
             .service(
                 web::scope("/syn")
                     .route("", web::get().to(syn::get))
+                    .route("/punchin", web::post().to(syn::punchin))
+                    .route("/punchout", web::post().to(syn::punchout))
                     .service(
-                        web::resource("/{employee}")
-                            .route(web::get().to(syn::find))
-                            .route(web::post().to(syn::update)),
+                        web::scope("/employees")
+                            .route("", web::get().to(employees::list))
+                            .service(
+                                web::resource("/{employee}")
+                                    .route(web::get().to(employees::find))
+                                    .route(web::post().to(employees::update)),
+                            ),
                     ),
             ),
     );
