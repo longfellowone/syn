@@ -57,13 +57,6 @@ pub async fn update(
     HttpResponse::Ok().json("put hit")
 }
 
-pub async fn punchin() -> impl Responder {
-    "punchin"
-}
-pub async fn punchout() -> impl Responder {
-    "punchout"
-}
-
 pub fn employees() -> HashMap<String, Employee> {
     let matt = Employee {
         name: "wrightm".to_string(),

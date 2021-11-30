@@ -8,3 +8,23 @@ pub async fn get(req: HttpRequest) -> impl Responder {
 
     HttpResponse::Ok()
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::test_util;
+
+    #[actix_rt::test]
+    async fn test_v1_covid_get_is_success() {
+        let address = test_util::run_app();
+        let client = reqwest::Client::new();
+
+        let response = client
+            .get(format!("{}/v1/covid", address))
+            .send()
+            .await
+            .expect("failed to execute request to /v1/covid");
+
+        assert!(response.status().is_success())
+    }
+}
