@@ -44,20 +44,32 @@ pub async fn get(
     }
 }
 
-// TODO: CONVERT VEC TO HASHMAP
-// TODO: Use employee struct for json input and return
-// TODO: Don't toggle status on server, toggle on client and update server from request
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateEmployee {
+    enabled: bool,
+}
+
 pub async fn update(
     req: HttpRequest,
-    employee: web::Path<String>,
+    name: web::Path<String>,
+    employee: web::Json<UpdateEmployee>,
     data: web::Data<Mutex<AppData>>,
 ) -> impl Responder {
+    let name = name.into_inner();
+    let employee = employee.into_inner();
+
     let time = Utc::now().with_timezone(&Canada::Pacific).to_rfc2822();
-    println!("[{}] Enable/disable employee", time);
+    println!("[{}] Enable/disable employee: {}", time, name);
 
-    let data = data.lock().unwrap();
+    let mut data = data.lock().unwrap();
 
-    HttpResponse::Ok().json("put hit")
+    match data.employees.get_mut(&name) {
+        None => HttpResponse::NotFound().finish(),
+        Some(e) => {
+            e.enabled = employee.enabled;
+            HttpResponse::Ok().json(e)
+        }
+    }
 }
 
 pub fn employees() -> HashMap<String, Employee> {
@@ -104,7 +116,7 @@ pub fn employees() -> HashMap<String, Employee> {
 
 #[cfg(test)]
 mod test {
-    use crate::employees::Employee;
+    use crate::employees::{Employee, UpdateEmployee};
     use crate::test_util;
     use reqwest::StatusCode;
 
@@ -147,5 +159,56 @@ mod test {
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
         assert_eq!(response.content_length(), Some(0));
+    }
+
+    #[actix_rt::test]
+    async fn test_employee_update_ok() {
+        let address = test_util::run_app();
+        let client = reqwest::Client::new();
+
+        let name = String::from("wrightm");
+        let update_employee = UpdateEmployee { enabled: true };
+        let address = format!("{}/v1/syn/employees/{}", address, &name);
+
+        let response_employee = client
+            .get(&address)
+            .send()
+            .await
+            .expect("failed to execute get request to v1/syn/employees/wrightm")
+            .json::<Employee>()
+            .await
+            .expect("failed to get json employee from request");
+
+        // Check get request returns an employee enabled false
+        assert_ne!(response_employee.enabled, update_employee.enabled);
+
+        let response = client
+            .post(&address)
+            .json(&update_employee)
+            .send()
+            .await
+            .expect("failed to execute post/update request to v1/syn/employees/wrightm");
+
+        assert!(response.status().is_success());
+
+        let response_employee = response
+            .json::<Employee>()
+            .await
+            .expect("failed to get json employee from request");
+
+        // Check response returns updated employee with enabled true
+        assert_eq!(response_employee.enabled, update_employee.enabled);
+
+        let response_employee = client
+            .get(&address)
+            .send()
+            .await
+            .expect("failed to execute get request to v1/syn/employees/wrightm")
+            .json::<Employee>()
+            .await
+            .expect("failed to get json employee from request");
+
+        // Check get request returns an updated employee with enabled true
+        assert_eq!(response_employee.enabled, update_employee.enabled)
     }
 }

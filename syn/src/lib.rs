@@ -8,6 +8,13 @@ use reqwest::header::{
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 
+// TODO: one day
+// let employee = syn::Employee
+// let client = syn::Client::new(employee)
+// syn::Punch::in(client)
+// syn::Punch::out(client)
+// fn in() and out() - call punch(client: Client, punch_type: PunchType)
+
 pub struct Client {
     base_url: String,
     token: String,
