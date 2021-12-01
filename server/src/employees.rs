@@ -2,13 +2,13 @@ use crate::AppData;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use chrono::Utc;
 use chrono_tz::Canada;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Mutex;
 
 // https://serde.rs/attributes.html
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Employee {
     name: String,
     device_id: String,
@@ -20,25 +20,28 @@ pub async fn list(req: HttpRequest, data: web::Data<Mutex<AppData>>) -> impl Res
     println!("[{}] List employees", time);
 
     let data = data.lock().unwrap();
-
     let employees = data.employees.values().cloned().collect::<Vec<Employee>>();
 
     HttpResponse::Ok().json(employees)
 }
 
-pub async fn find(
+pub async fn get(
     req: HttpRequest,
     employee: web::Path<String>,
     data: web::Data<Mutex<AppData>>,
 ) -> impl Responder {
+    let employee = employee.into_inner();
+
     let time = Utc::now().with_timezone(&Canada::Pacific).to_rfc2822();
-    println!("[{}] Find employee", time);
+    println!("[{}] Find employee: {}", time, &employee);
 
     let data = data.lock().unwrap();
-    // return full employee
-    // else http not found
+    let employee = data.employees.get(&employee);
 
-    HttpResponse::Ok().json("find hit")
+    match employee {
+        None => HttpResponse::NotFound().finish(),
+        Some(e) => HttpResponse::Ok().json(e),
+    }
 }
 
 // TODO: CONVERT VEC TO HASHMAP
@@ -101,22 +104,48 @@ pub fn employees() -> HashMap<String, Employee> {
 
 #[cfg(test)]
 mod test {
+    use crate::employees::Employee;
     use crate::test_util;
-
-    // 3.7.2 - urlencoded
+    use reqwest::StatusCode;
 
     #[actix_rt::test]
-    async fn test_something() {
+    async fn test_employee_get_returns_correct_employee() {
         let address = test_util::run_app();
         let client = reqwest::Client::new();
 
-        // let response = client
-        //     .get(&format!("{}/health_check", &address))
-        //     .send()
-        //     .await
-        //     .expect("Failed to execute request.");
-        //
-        // assert!(response.status().is_success());
-        // assert_eq!(Some(0), response.content_length());
+        let employee_name = String::from("wrightm");
+
+        let response = client
+            .get(&format!("{}/v1/syn/employees/{}", address, &employee_name))
+            .send()
+            .await
+            .expect("failed to execute request to v1/syn/employees/wrightm");
+
+        assert!(response.status().is_success());
+
+        let response_employee = response
+            .json::<Employee>()
+            .await
+            .expect("failed to get json employee from request");
+
+        assert_eq!(response_employee.name, employee_name);
+    }
+
+    #[actix_rt::test]
+    async fn test_employee_get_returns_404_when_employee_does_not_exist() {
+        let address = test_util::run_app();
+        let client = reqwest::Client::new();
+
+        let response = client
+            .get(&format!(
+                "{}/v1/syn/employees/namethatdoesnotexist",
+                address
+            ))
+            .send()
+            .await
+            .expect("failed to execute request to v1/syn/employees/wrightm");
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        assert_eq!(response.content_length(), Some(0));
     }
 }

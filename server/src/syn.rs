@@ -2,9 +2,9 @@ use actix_web::{HttpResponse, Responder};
 use chrono::Utc;
 use chrono_tz::Canada;
 
-pub async fn get() -> impl Responder {
+pub async fn health_check() -> impl Responder {
     let time = Utc::now().with_timezone(&Canada::Pacific).to_rfc2822();
-    println!("[{}] Punch in/out", time);
+    println!("[{}] Syn punch in/out", time);
 
     HttpResponse::Ok()
 }

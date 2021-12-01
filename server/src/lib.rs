@@ -38,10 +38,10 @@ pub fn run(listener: TcpListener) -> Result<Server> {
 fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/v1")
-            .route("/covid", web::get().to(covid::get))
+            .route("/covid", web::get().to(covid::health_check))
             .service(
                 web::scope("/syn")
-                    .route("", web::get().to(syn::get))
+                    .route("", web::get().to(syn::health_check))
                     .route("/punchin", web::post().to(syn::punchin))
                     .route("/punchout", web::post().to(syn::punchout))
                     .service(
@@ -49,7 +49,7 @@ fn routes(cfg: &mut web::ServiceConfig) {
                             .route("", web::get().to(employees::list))
                             .service(
                                 web::resource("/{employee}")
-                                    .route(web::get().to(employees::find))
+                                    .route(web::get().to(employees::get))
                                     .route(web::post().to(employees::update)),
                             ),
                     ),
