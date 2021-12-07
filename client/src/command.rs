@@ -94,7 +94,7 @@ pub async fn punch(punch_type: PunchType, instant: bool, e: Employee) -> Result<
     client.punch(punch_type).await?;
 
     println!("Success! punched {}: {}", punched, name);
-    sleep(Duration::from_secs(14400)).await;
+    sleep(Duration::from_secs(7200)).await;
 
     Ok(())
 }

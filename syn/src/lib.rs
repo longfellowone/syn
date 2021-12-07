@@ -5,7 +5,6 @@ use rand::Rng;
 use reqwest::header::{
     ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, AUTHORIZATION, CONTENT_TYPE, USER_AGENT,
 };
-use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 
 // TODO: one day
@@ -15,9 +14,14 @@ use serde::{Deserialize, Serialize};
 // syn::Punch::out(client)
 // fn in() and out() - call punch(client: Client, punch_type: PunchType)
 
+// let token = syn::Token::new(employee)
+// syn::Punch::in(token)
+// syn::Punch::out(token)
+
 pub struct Client {
     base_url: String,
     token: String,
+    location: Location,
 }
 
 pub struct Employee {
@@ -32,6 +36,27 @@ pub enum PunchType {
     Out = 2,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct PunchinRequest {
+    punch_type: i8,
+    location: Location,
+    daily_event_type: i8,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct PunchinResponse {
+    error: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct Location {
+    latitude: f64,
+    longitude: f64,
+}
+
 impl Client {
     pub async fn new(base_url: &str, employee: impl Into<Employee>) -> Result<Client> {
         let employee = employee.into();
@@ -39,28 +64,22 @@ impl Client {
             .await
             .context("unable to get token")?;
 
+        let mut rng = rand::thread_rng();
+
+        let rand_lat = rng.gen_range(0.0000..0.00009999999999);
+        let rand_long = rng.gen_range(0.0000..0.00009999999999);
+
         Ok(Client {
             base_url: base_url.to_string(),
             token,
+            location: Location {
+                latitude: 49.2312 + rand_lat,
+                longitude: -123.1197 + rand_long,
+            },
         })
     }
 
     pub async fn punch(&self, punch_type: PunchType) -> Result<()> {
-        #[derive(Debug, Serialize)]
-        #[serde(rename_all = "PascalCase")]
-        struct PunchinRequest {
-            punch_type: i8,
-            location: Location,
-            daily_event_type: i8,
-        }
-
-        #[derive(Debug, Serialize)]
-        #[serde(rename_all = "PascalCase")]
-        struct Location {
-            latitude: f64,
-            longitude: f64,
-        }
-
         // TODO: use reqwest::url
         let url = self.base_url.to_owned() + "/SynerionMobile/api/mobile/punches/punch";
 
@@ -69,16 +88,11 @@ impl Client {
         let client = reqwest::Client::new();
         let (time_unix, date) = date_time();
 
-        let mut rng = rand::thread_rng();
-
-        let rand_lat = rng.gen_range(0.0000..0.00009999999999);
-        let rand_long = rng.gen_range(0.0000..0.00009999999999);
-
         let punchin_request = PunchinRequest {
             punch_type: punch_type as i8,
             location: Location {
-                latitude: 49.2312 + rand_lat,
-                longitude: -123.1197 + rand_long,
+                latitude: self.location.latitude,
+                longitude: self.location.longitude,
             },
             daily_event_type: 0,
         };
@@ -108,32 +122,38 @@ impl Client {
             .await
             .context("punchin request failed")?;
 
-        // TODO: confirm "Error" is none instead of checking status
-        match response.status() {
-            StatusCode::OK => Ok(()),
-            _ => Err(Error::msg("punch status code not 200")),
+        // TODO: check error in response, return if not false
+        let error = response
+            .json::<PunchinResponse>()
+            .await
+            .context("failed to unmarshall punchin response")?
+            .error;
+
+        match error {
+            None => Ok(()),
+            Some(e) => Err(Error::msg(format!("failed in punch in: {}", e))),
         }
     }
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "PascalCase")]
+struct TokenRequest {
+    #[serde(rename = "UserName")]
+    username: String,
+    password: String,
+    device_model: String,
+    device_unique_id: String,
+    replace_registered_device: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+struct TokenResponse {
+    token: String,
+}
+
 async fn get_token(base_url: &str, employee: Employee) -> Result<String> {
-    #[derive(Debug, Serialize)]
-    #[serde(rename_all = "PascalCase")]
-    struct TokenRequest {
-        #[serde(rename = "UserName")]
-        username: String,
-        password: String,
-        device_model: String,
-        device_unique_id: String,
-        replace_registered_device: bool,
-    }
-
-    #[derive(Debug, Deserialize)]
-    #[serde(rename_all = "PascalCase")]
-    struct TokenResponse {
-        token: String,
-    }
-
     // TODO: use reqwest::url
     let url = base_url.to_owned() + "/SynerionMobile/api/mobile/auth/login";
 
@@ -172,6 +192,7 @@ async fn get_token(base_url: &str, employee: Employee) -> Result<String> {
         .await
         .context("token request failed")?;
 
+    // TODO: check error in response, return if not false
     let token = response
         .json::<TokenResponse>()
         .await
@@ -194,14 +215,18 @@ fn date_time() -> (i64, String) {
 mod tests {
     use super::*;
     use wiremock::matchers::{
-        body_string, header, header_exists, headers, method, path, query_param,
+        body_json, body_string, header, header_exists, headers, method, path, query_param,
     };
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
-    fn mock_client(base_url: &str) -> Client {
+    fn mock_client(base_url: &str, latitude: f64, longitude: f64) -> Client {
         Client {
             base_url: base_url.to_string(),
             token: "mytoken".to_string(),
+            location: Location {
+                latitude,
+                longitude,
+            },
         }
     }
 
@@ -214,9 +239,14 @@ mod tests {
         }
     }
 
+    // TODO: Add test to client to ensure location in random and with correct area
+
     #[tokio::test]
     async fn test_punch_has_correct_headers() {
         let mock_server = MockServer::start().await;
+
+        let response_body = PunchinResponse { error: None };
+        let response_template = ResponseTemplate::new(200).set_body_json(response_body);
 
         Mock::given(method("POST"))
             .and(path("/SynerionMobile/api/mobile/punches/punch"))
@@ -235,12 +265,15 @@ mod tests {
             .and(header("authorization", "Basic mytoken"))
             .and(header_exists("x-request-start-time"))
             .and(header_exists("client-date-time"))
-            .respond_with(ResponseTemplate::new(200))
+            .respond_with(response_template)
             .expect(1)
             .mount(&mock_server)
             .await;
 
-        let mock_client = mock_client(&mock_server.uri());
+        let mock_latitude = 49.23122430964335;
+        let mock_longitude = -123.11968088332243;
+
+        let mock_client = mock_client(&mock_server.uri(), mock_latitude, mock_longitude);
 
         mock_client.punch(PunchType::In).await.unwrap()
     }
@@ -249,23 +282,31 @@ mod tests {
     async fn test_punch_request_response() {
         let mock_server = MockServer::start().await;
 
-        // TODO: fix test somehow? response does not match because location is now randomized
-        let request_body = r#"{"PunchType":1,"Location":{"Latitude":49.23122430964335,"Longitude":-123.11968088332243},"DailyEventType":0}"#;
-        let response_body = r#"{"PunchDateTime":"2021-11-12T14:22:00Z","Location":{"Latitude":49.231224309643352,"Longitude":-123.11968088332243},"IsLocationValid":false,"IsValid":true,"Error":null,"EventMode":0,"EventType":0,"IsMobileWithoutLocation":false}"#;
+        let mock_latitude = 49.23122430964335;
+        let mock_longitude = -123.11968088332243;
 
-        let response_template =
-            ResponseTemplate::new(200).set_body_string(response_body.to_string());
+        let mock_client = mock_client(&mock_server.uri(), mock_latitude, mock_longitude);
+
+        let request_body = PunchinRequest {
+            punch_type: 1,
+            location: Location {
+                latitude: mock_latitude,
+                longitude: mock_longitude,
+            },
+            daily_event_type: 0,
+        };
+
+        let response_body = PunchinResponse { error: None };
+
+        let response_template = ResponseTemplate::new(200).set_body_json(response_body);
 
         Mock::given(method("POST"))
-            .and(body_string(request_body.to_string()))
+            .and(body_json(request_body))
             .respond_with(response_template)
-            .expect(0)
+            .expect(1)
             .mount(&mock_server)
             .await;
 
-        let mock_client = mock_client(&mock_server.uri());
-
-        // TODO: see earlier todo
         mock_client.punch(PunchType::In).await.unwrap()
     }
 

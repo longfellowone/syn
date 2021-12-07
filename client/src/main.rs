@@ -9,7 +9,7 @@ use tokio::time::{sleep, Duration};
 async fn main() {
     if let Err(e) = run().await {
         println!("{:?}", e);
-        sleep(Duration::from_secs(5)).await;
+        sleep(Duration::from_secs(600)).await;
         process::exit(1)
     }
 }
