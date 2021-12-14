@@ -1,8 +1,11 @@
 use anyhow::{Context, Error, Result};
+use chrono::Utc;
+use chrono_tz::Canada;
 use log::info;
 use rand::Rng;
 use reqwest::StatusCode;
 use simplelog::{LevelFilter, WriteLogger};
+use std::fs;
 use std::fs::File;
 use structopt::StructOpt;
 use syn::PunchType;
@@ -52,7 +55,16 @@ impl From<&Employee> for syn::Employee {
 }
 
 pub async fn run() -> Result<()> {
-    let logfile = File::create("syn.log")?;
+    let time = Utc::now()
+        .with_timezone(&Canada::Pacific)
+        .format("%Y%m%d%H%M%S")
+        .to_string();
+
+    fs::create_dir_all("logs").ok();
+
+    let file_name = format!("logs/{}.log", time);
+
+    let logfile = File::create(file_name)?;
 
     let config = simplelog::ConfigBuilder::new()
         .set_time_to_local(true)
