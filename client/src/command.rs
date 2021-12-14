@@ -54,7 +54,11 @@ impl From<&Employee> for syn::Employee {
 pub async fn run() -> Result<()> {
     let logfile = File::create("syn.log")?;
 
-    WriteLogger::init(LevelFilter::Info, simplelog::Config::default(), logfile)?;
+    let config = simplelog::ConfigBuilder::new()
+        .set_time_to_local(true)
+        .build();
+
+    WriteLogger::init(LevelFilter::Info, config, logfile)?;
 
     info!("log file created");
     info!("checking health status...");
