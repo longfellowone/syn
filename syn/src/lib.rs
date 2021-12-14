@@ -1,6 +1,7 @@
 use anyhow::{Context, Error, Result};
 use chrono::Utc;
 use chrono_tz::Canada;
+use log::info;
 use rand::Rng;
 use reqwest::header::{
     ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, AUTHORIZATION, CONTENT_TYPE, USER_AGENT,
@@ -60,9 +61,13 @@ pub struct Location {
 impl Client {
     pub async fn new(base_url: &str, employee: impl Into<Employee>) -> Result<Client> {
         let employee = employee.into();
+
+        info!("getting token for client...");
         let token = get_token(base_url, employee)
             .await
             .context("unable to get token")?;
+
+        info!("got token: {}", &token);
 
         let mut rng = rand::thread_rng();
 
@@ -101,6 +106,8 @@ impl Client {
         let json =
             serde_json::to_string(&punchin_request).context("failed to marshall token request")?;
 
+        info!("starting punch http request");
+
         // TODO: reqwest::header::HeaderMap
         // TODO: add private headers function, exclude auth headers
         let response = client
@@ -121,6 +128,8 @@ impl Client {
             .send()
             .await
             .context("punchin request failed")?;
+
+        info!("received http response for punch request");
 
         // TODO: check error in response, return if not false
         let error = response

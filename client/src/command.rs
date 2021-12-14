@@ -1,6 +1,9 @@
 use anyhow::{Context, Error, Result};
+use log::info;
 use rand::Rng;
 use reqwest::StatusCode;
+use simplelog::{LevelFilter, WriteLogger};
+use std::fs::File;
 use structopt::StructOpt;
 use syn::PunchType;
 use tokio::time::{sleep, Duration};
@@ -49,9 +52,19 @@ impl From<&Employee> for syn::Employee {
 }
 
 pub async fn run() -> Result<()> {
+    let logfile = File::create("syn.log")?;
+
+    WriteLogger::init(LevelFilter::Info, simplelog::Config::default(), logfile)?;
+
+    info!("log file created");
+    info!("checking health status...");
+
     check_app_status()
         .await
         .context("error: health check failed")?;
+
+    info!("health check ok");
+    info!("reading command line arguments...");
 
     let opt = Opt::from_args_safe()?;
 
@@ -72,7 +85,7 @@ const BASE_URL: &str = "https://ozzelectric.synerionenterprise.com";
 pub async fn punch(punch_type: PunchType, instant: bool, e: Employee) -> Result<()> {
     let client = syn::Client::new(BASE_URL, &e).await?;
 
-    let name = e.username;
+    let name = e.username.clone();
     let punched = match &punch_type {
         PunchType::In => "in",
         PunchType::Out => "out",
@@ -88,10 +101,14 @@ pub async fn punch(punch_type: PunchType, instant: bool, e: Employee) -> Result<
         delay = 0;
     }
 
+    info!("starting punch {:?} for {:?}", &punched, &e);
+
     println!("{} seconds to punch {}", delay, punched);
     sleep(Duration::from_secs(delay)).await;
 
+    info!("punching...");
     client.punch(punch_type).await?;
+    info!("punched!");
 
     println!("Success! punched {}: {}", punched, name);
     sleep(Duration::from_secs(7200)).await;
