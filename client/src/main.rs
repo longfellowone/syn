@@ -6,6 +6,8 @@ use log::error;
 use std::process;
 use tokio::time::{sleep, Duration};
 
+// https://github.com/mikaelmello/inquire
+
 #[tokio::main]
 async fn main() {
     if let Err(e) = run().await {

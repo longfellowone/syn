@@ -418,6 +418,8 @@ name = "client"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
+ "chrono-tz",
  "log",
  "rand 0.8.4",
  "reqwest",
